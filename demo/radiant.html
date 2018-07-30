@@ -18,7 +18,7 @@
   }
 
   var config = {
-    projection: "sinusoidal",
+    projection: "aitoff",
     geopos: [-77.849495, 166.728622], // McMurdo
     location: true,
     interactive: true,
@@ -70,7 +70,7 @@
     var re = RegExp('\\d+', 'g');
     var raddata = [];
     for (var l = 0; l < lines.length - 1; l++) {
-      raddata.push(lines[l].match(re).map(x => parseInt(x)))
+      raddata.push(lines[l].match(re).map(x => parseInt(x)));
     }
 
     var bins = [70, 140, 208, 277, 347, 415, 484, 554];
@@ -158,7 +158,7 @@
     }});
     Celestial.display(config);
     Celestial.date(new Date(2018, 4, 5)); // 5th May 2018
-    Celestial.rotate({center: [0, -90, -90]});
+    Celestial.rotate({center: [0, -90, 0]});
   }
 </script>
 <footer id="d3-celestial-footer">
