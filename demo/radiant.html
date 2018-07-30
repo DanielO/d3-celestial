@@ -7,19 +7,14 @@
   <script type="text/javascript" src="../celestial.min.js"></script>
   <link rel="stylesheet" href="../celestial.css">
 </head><body>
+<div id="bincolours"></div>
 <div style="overflow:hidden;"><div id="celestial-map"></div></div>
 <div id="celestial-form"></div>
 <script type="text/javascript">
-  function hour2degree(ra) {
-    return ra > 12 ? (ra - 24) * 15 : ra * 15;
-  }
-  function hms2deg(hr, min, sec) {
-    return hour2degree(hr + min / 60.0 + sec / 3600.0);
-  }
-
   var config = {
     projection: "aitoff",
     geopos: [-77.849495, 166.728622], // McMurdo
+    center: [0, -90, 0],
     location: true,
     interactive: true,
     form: true,
@@ -28,7 +23,15 @@
     planets: {show: true},
     horizon: {show: true},
   };
+
   d3.text('../data/radnt_d.txt', raload);
+  function hour2degree(ra) {
+    return ra > 12 ? (ra - 24) * 15 : ra * 15;
+  }
+
+  function hms2deg(hr, min, sec) {
+    return hour2degree(hr + min / 60.0 + sec / 3600.0);
+  }
 
   function raload(error, text) {
     if (error) {
@@ -36,6 +39,7 @@
       return;
     }
 
+    // Parse radiant data
     var lines = text.split('\n')
     if (lines.length != 95) {
       console.log("Incorrect number of lines in radiant file");
@@ -72,52 +76,64 @@
       raddata.push(lines[l].match(re).map(x => parseInt(x)));
     }
 
-    var bins = [70, 140, 208, 277, 347, 415, 484, 554];
-    function rgbas(r, g, b, a) {
-      return "rgba(" + r + ", " + g + ", " + b + ", " + a + ")";
-    }
-    var alpha = 0.8;
-    var colours = [rgbas(0, 191, 255, alpha), rgbas(0, 191, 255, alpha), rgbas(0, 255, 255, alpha), rgbas(144, 238, 144, alpha),
-		   rgbas(144, 238, 144, alpha), rgbas(255, 255, 0, alpha), rgbas(255, 165, 0, alpha), rgbas(238, 130, 238, alpha)];
+    // Work out bin boundaries and display colour table etc
+    var colourvals = [[  0, 151, 215],
+		      [  0, 191, 255],
+		      [  0, 255, 255],
+		      [ 94, 188,  94],
+		      [144, 238, 144],
+		      [255, 255,   0],
+		      [255, 165,   0],
+		      [238, 130, 238]];
 
+    var max = Math.max.apply(null, raddata.map(function(row){ return Math.max.apply(Math, row); }));
+    var binsize = max / colourvals.length;
+    var bins = [];
+    var colours = [];
+    var bctxt = '<table><tr><td bgcolor="#000000" style="color:#ffffff">0</td>';
+    for (var i = 0; i < colourvals.length; i++) {
+      var r = colourvals[i][0];
+      var g = colourvals[i][1];
+      var b = colourvals[i][2];
+      bctxt += '<td bgcolor="#' + r.toString(16) + g.toString(16) +
+	b.toString(16) + '" style="color:#ffffff">' + binsize * (i + 1) + '</td>';
+      bins.push(binsize * (i + 1));
+      colours.push("rgba(" + r + ", " + g + ", " + b + ", 0.8)");
+    }
+    bctxt += '</tr></table>';
+    document.getElementById('bincolours').innerHTML = bctxt;
+
+    // Feature dict we fill out
     var radiantFeatures = {
       "type":"FeatureCollection",
       "features":[],
     };
 
-    for (var i = 0; i < 90; i++) {
-      for (var j = 0; j < 90; j++) {
+    // Iterate over each piece of data
+    for (var i = 0; i < raddata.length; i++) {
+      for (var j = 0; j < raddata[i].length; j++) {
 	var ra = j * rastep + hms2deg(rastart, 0, 0);
 	var decl = 90 - (i * declstep);
+
+	// Find which bin this sector should be
 	for (var b = bins.length - 1; b > 0; b--) {
 	  if (raddata[i][j] >= bins[b]) {
 	    break;
 	  }
 	}
+	// Skip areas with no data
 	if (b == 0)
 	  continue;
-	var colour = colours[b];
 
+	// Add feature for this sector
 	var feat = {
 	  "type":"Feature",
 	  "lineStyle": {
-	    stroke:"#00",
 	    width: .00001, // 0 width doesn't work..
-	    fill: colour,
+	    fill: colours[b],
 	  },
-	  "textStyle": {
-	    fill:"#f00",
-	    font: "bold 15px Helvetica, Arial, sans-serif",
-	    align: "center",
-	    baseline: "middle"
-	  },
-	  "id":"radiant_" + i + "x" + j,
-	  "properties": {
-	    // Name
-	    "n":"",
-	  }, "geometry":{
-	    // the line object as an array of point coordinates
-	    "type":"MultiLineString",
+	  "geometry": {
+	    "type": "MultiLineString",
 	    "coordinates": [[
 	      [ra - rastep / 2, decl - declstep / 2],
 	      [ra + rastep / 2, decl - declstep / 2],
@@ -131,6 +147,7 @@
       }
     }
 
+    // Load feature into map
     Celestial.add({type:"line", callback: function(error, json) {
       // Load GeoJSON and convert coordinates
       var asterism = Celestial.getData(radiantFeatures, config.transform);
@@ -155,10 +172,12 @@
 
       });
     }});
+
+    // Draw map
     Celestial.display(config);
     Celestial.date(new Date(2018, 4, 5)); // 5th May 2018
-    Celestial.rotate({center: [0, -90, 0]});
   }
+
 </script>
 <footer id="d3-celestial-footer">
 <p><a href="https://github.com/ofrohn/d3-celestial"><b>D3-Celestial</b></a> released under <a href="http://opensource.org/licenses/BSD-3-Clause">BSD license</a>. Copyright 2015-16 <a href="http://armchairastronautics.blogspot.com/" rel="author">Olaf Frohn</a>.
