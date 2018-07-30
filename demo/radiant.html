@@ -24,10 +24,6 @@
     horizon: {show: true},
   };
 
-
-  // Draw map
-  Celestial.display(config);
-  Celestial.date(new Date(2018, 4, 5)); // 5th May 2018
   d3.text(config.datapath + '/20180505.mcmurdo.rad', raload);
   function hour2degree(ra) {
     return ra > 12 ? (ra - 24) * 15 : ra * 15;
@@ -175,7 +171,10 @@
 	Celestial.context.stroke();
       });
     }});
+
+    // Draw map
     Celestial.display(config);
+    Celestial.date(new Date(2018, 4, 5)); // 5th May 2018
   }
 
 </script>
