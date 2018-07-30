@@ -112,7 +112,7 @@
     // Iterate over each piece of data
     for (var i = 0; i < raddata.length; i++) {
       for (var j = 0; j < raddata[i].length; j++) {
-	var ra = j * rastep + hms2deg(rastart, 0, 0);
+	var ra = 360 - (j * rastep + hms2deg(rastart, 0, 0));
 	var decl = 90 - (i * declstep);
 
 	// Find which bin this sector should be
