@@ -88,9 +88,8 @@
 
     for (var i = 0; i < 90; i++) {
       for (var j = 0; j < 90; j++) {
-	var ra = i * rastep + hms2deg(rastart, 0, 0);
-	var decl = (j * declstep) - 90;
-
+	var ra = j * rastep + hms2deg(rastart, 0, 0);
+	var decl = 90 - (i * declstep);
 	for (var b = bins.length - 1; b > 0; b--) {
 	  if (raddata[i][j] >= bins[b]) {
 	    break;
