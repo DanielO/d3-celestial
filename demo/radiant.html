@@ -2,29 +2,48 @@
 <html lang="en"><head>
   <meta charset="utf-8">
   <title>D3-Celestial Starmap</title>
+  <script type="text/javascript" src="../lib/sprintf.js"></script>
   <script type="text/javascript" src="../lib/d3.min.js"></script>
   <script type="text/javascript" src="../lib/d3.geo.projection.min.js"></script>
   <script type="text/javascript" src="../celestial.min.js"></script>
   <link rel="stylesheet" href="../celestial.css">
 </head><body style="background-color:#000000">
-<div id="bincolours"></div>
+    <table><tr><td><div style="color:#ffffff"
+    id="sitename"></div></td><td><button onclick="newday(1)"><-</button></td><td><div style="color:#ffffff"
+    id="date"></div></td><td><button onclick="newday(1)">-></button></td></tr></table>
+    <div id="bincolours"></div>
 <div style="overflow:hidden;"><div id="celestial-map"></div></div>
 <div id="celestial-form" style="background-color:#ffffff"></div>
 <script type="text/javascript">
   var config = {
     projection: "aitoff",
-    geopos: [-77.849495, 166.728622], // McMurdo
+    //geopos: [-77.849495, 166.728622], // McMurdo
     //center: [-45, 0, 0],
+    center: [25.468299143947664, -0, 0],
     location: true,
-    interactive: true,
+    interactive: false,
     form: true,
     datapath: "../data/",
-    stars: {proper: true},
-    planets: {show: true},
-    horizon: {show: true},
+    //stars: {proper: true},
+    stars: {show: false},
+    //planets: {show: true},
+    //horizon: {show: true},
   };
 
-  d3.text(config.datapath + '/20180505.mcmurdo.rad', raload);
+  var nowdate = new Date(2018, 3, 1);
+  var sitename = 'mcmurdo';
+
+  function newday(incr) {
+    var fname = sprintf("%s/%04d%02d%02d.%s.rad", config.datapath,
+			nowdate.getYear() + 1900, nowdate.getMonth() + 1, nowdate.getDate(),
+			sitename);
+    var dstr = sprintf("%04d/%02d/%02d", nowdate.getYear() + 1900, nowdate.getMonth() + 1, nowdate.getDate());
+    document.getElementById('date').innerHTML = dstr;
+    document.getElementById('sitename').innerHTML = sitename;
+    nowdate = new Date(nowdate.getTime() + 86400000 * incr);
+    d3.text(fname, raload);
+  }
+  newday(0);
   function hour2degree(ra) {
     return ra > 12 ? (ra - 24) * 15 : ra * 15;
   }
@@ -95,8 +114,7 @@
       var r = colourvals[i][0];
       var g = colourvals[i][1];
       var b = colourvals[i][2];
-      bctxt += '<td bgcolor="#' + r.toString(16) + g.toString(16) +
-	b.toString(16) + '" style="color:#ffffff">' + binsize * (i + 1) + '</td>';
+      bctxt += sprintf('<td bgcolor="#%02x%02x%02x" style="color:#ffffff">%0.1f</td>', r, g, b, binsize * (i + 1));
       bins.push(binsize * (i + 1));
       colours.push("rgba(" + r + ", " + g + ", " + b + ", 0.8)");
     }
@@ -124,14 +142,15 @@
 	// Skip areas with no data
 	if (b == 0)
 	  continue;
-
+	var colour = colours[b];
 	// Add feature for this sector
 	var feat = {
 	  "type":"Feature",
 	  "lineStyle": {
 	    width: .00001, // 0 width doesn't work..
-	    fill: colours[b],
+	    fill: colour,
 	  },
+	  "id": "radiant_" + i + "x" + j,
 	  "geometry": {
 	    "type": "MultiLineString",
 	    "coordinates": [[
@@ -147,12 +166,13 @@
       }
     }
 
+    Celestial.data = [];
     // Load feature into map
     Celestial.add({type:"line", callback: function(error, json) {
       // Load GeoJSON and convert coordinates
       var asterism = Celestial.getData(radiantFeatures, config.transform);
 
-      // Add to celestiasl objects container in d3
+      // Add to celestial objects container in d3
       Celestial.container.selectAll(".asterisms")
 	.data(asterism.features)
 	.enter().append("path")
@@ -174,7 +194,6 @@
 
     // Draw map
     Celestial.display(config);
-    Celestial.date(new Date(2018, 4, 5)); // 5th May 2018
   }
 
 </script>
