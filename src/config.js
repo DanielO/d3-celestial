@@ -7,12 +7,14 @@ var settings = {
   center: null,       // Initial center coordinates in equatorial transformation [hours, degrees, degrees], 
                       // otherwise [degrees, degrees, degrees], 3rd parameter is orientation, null = default center
   geopos: null,       // optional initial geographic position [lat,lon] in degrees, overrides center
+  centeroverride: false,
   orientationfixed: true,  // Keep orientation angle the same as center[2]
   adaptable: true,    // Sizes are increased with higher zoom-levels
   interactive: true,  // Enable zooming and rotation with mousewheel and dragging
   form: false,        // Display settings form
-  location: false,    // Display location settings 
-  fullwidth: false,   // Display fullwidth button
+  location: false,    // Display location settings
+  daterange: [],      // Calender date range; null: displaydate-+10; [n<100]: displaydate-+n; [yr]: yr-+10; 
+                      // [yr, n<100]: [yr-n, yr+n]; [yr0, yr1]
   controls: true,     // Display zoom controls
   lang: "",           // Language for names, so far only for constellations: de: german, es: spanish
                       // Default:en or empty string for english

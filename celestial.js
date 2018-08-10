@@ -1,7 +1,7 @@
 // Copyright 2015 Olaf Frohn https://github.com/ofrohn, see LICENSE
 !(function() {
 var Celestial = {
-  version: '0.6.6',
+  version: '0.6.7',
   container: null,
   data: []
 };
@@ -83,10 +83,11 @@ Celestial.display = function(config) {
   setClip(proj.clip);
 
   d3.select(window).on('resize', resize);
-
+  d3.select(par).on('dblclick', function () { zoomBy(1.5625); return false; });
+ 
   if (cfg.controls === true && $("celestial-zoomin") === null) {
-    d3.select(par).append("input").attr("type", "button").attr("id", "celestial-zoomin").attr("value", "\u002b").on("click", function () { zoomBy(1.111); });
-    d3.select(par).append("input").attr("type", "button").attr("id", "celestial-zoomout").attr("value", "\u2212").on("click", function () { zoomBy(0.9); });
+    d3.select(par).append("input").attr("type", "button").attr("id", "celestial-zoomin").attr("value", "\u002b").on("click", function () { zoomBy(1.25); return false; });
+    d3.select(par).append("input").attr("type", "button").attr("id", "celestial-zoomout").attr("value", "\u2212").on("click", function () { zoomBy(0.8); return false; });
   }
   
   if (cfg.location === true) {
@@ -1071,6 +1072,17 @@ Celestial.add = function(dat) {
   Celestial.data.push(res);
 };
 
+Celestial.remove = function(i) {
+  if (i !== null && i < Celestial.data.length) {
+    return Celestial.data.splice(i,1);
+  }
+};
+
+Celestial.clear = function() {
+  Celestial.data = [];
+};
+
+
 //load data and transform coordinates
 
 
@@ -1248,12 +1260,14 @@ var settings = {
   center: null,       // Initial center coordinates in equatorial transformation [hours, degrees, degrees], 
                       // otherwise [degrees, degrees, degrees], 3rd parameter is orientation, null = default center
   geopos: null,       // optional initial geographic position [lat,lon] in degrees, overrides center
+  centeroverride: false,
   orientationfixed: true,  // Keep orientation angle the same as center[2]
   adaptable: true,    // Sizes are increased with higher zoom-levels
   interactive: true,  // Enable zooming and rotation with mousewheel and dragging
   form: false,        // Display settings form
-  location: false,    // Display location settings 
-  fullwidth: false,   // Display fullwidth button
+  location: false,    // Display location settings
+  daterange: [],      // Calender date range; null: displaydate-+10; [n<100]: displaydate-+n; [yr]: yr-+10; 
+                      // [yr, n<100]: [yr-n, yr+n]; [yr0, yr1]
   controls: true,     // Display zoom controls
   lang: "",           // Language for names, so far only for constellations: de: german, es: spanish
                       // Default:en or empty string for english
@@ -2323,19 +2337,23 @@ function geo(cfg) {
       date = new Date(),
       zone = date.getTimezoneOffset();
 
-  var dtpick = new datetimepicker( function(date, tz) { 
+  var dtpick = new datetimepicker(cfg, function(date, tz) { 
     $("datetime").value = dateFormat(date, tz); 
     zone = tz;
     go(); 
   });
   
-  if (has(cfg, "geopos") && cfg.geopos!== null && cfg.geopos.length === 2) geopos = cfg.geopos;
+  if (has(cfg, "geopos") && cfg.geopos !== null && cfg.geopos.length === 2) geopos = cfg.geopos;
   var col = frm.append("div").attr("class", "col").attr("id", "location");
   //Latitude & longitude fields
   col.append("label").attr("title", "Location coordinates long/lat").attr("for", "lat").html("Location");
-  col.append("input").attr("type", "number").attr("id", "lat").attr("title", "Latitude").attr("placeholder", "Latitude").attr("max", "90").attr("min", "-90").attr("step", "0.0001").attr("value", geopos[0]).on("change",  function () { if (testNumber(this) === true) go(); });
+  col.append("input").attr("type", "number").attr("id", "lat").attr("title", "Latitude").attr("placeholder", "Latitude").attr("max", "90").attr("min", "-90").attr("step", "0.0001").attr("value", geopos[0]).on("change",  function () {
+    if (testNumber(this) === true) go(); 
+  });
   col.append("span").html("\u00b0");
-  col.append("input").attr("type", "number").attr("id", "lon").attr("title", "Longitude").attr("placeholder", "Longitude").attr("max", "180").attr("min", "-180").attr("step", "0.0001").attr("value", geopos[1]).on("change",  function () { if (testNumber(this) === true) go(); });
+  col.append("input").attr("type", "number").attr("id", "lon").attr("title", "Longitude").attr("placeholder", "Longitude").attr("max", "180").attr("min", "-180").attr("step", "0.0001").attr("value", geopos[1]).on("change",  function () { 
+    if (testNumber(this) === true) go(); 
+  });
   col.append("span").html("\u00b0");
   //Here-button if supported
   if ("geolocation" in navigator) {
@@ -2343,14 +2361,22 @@ function geo(cfg) {
   }
   //Datetime field with dtpicker-button
   col.append("label").attr("title", "Local date/time").attr("for", "datetime").html(" Date/time");
-  col.append("input").attr("type", "button").attr("id", "day-left").attr("title", "One day back").on("click", function () { date.setDate(date.getDate() - 1); $("datetime").value = dateFormat(date, zone); go(); });
+  col.append("input").attr("type", "button").attr("id", "day-left").attr("title", "One day back").on("click", function () {
+    date.setDate(date.getDate() - 1); 
+    $("datetime").value = dateFormat(date, zone); 
+    go(); 
+  });
   col.append("input").attr("type", "text").attr("id", "datetime").attr("title", "Date and time").attr("value", dateFormat(date, zone))
   .on("click", showpick, true).on("input", function () { 
     this.value = dateFormat(date, zone); 
     if (!dtpick.isVisible()) showpick(); 
   });
   col.append("div").attr("id", "datepick").on("click", showpick);
-  col.append("input").attr("type", "button").attr("id", "day-right").attr("title", "One day forward").on("click", function () { date.setDate(date.getDate() + 1); $("datetime").value = dateFormat(date, zone); go(); });
+  col.append("input").attr("type", "button").attr("id", "day-right").attr("title", "One day forward").on("click", function () { 
+    date.setDate(date.getDate() + 1); 
+    $("datetime").value = dateFormat(date, zone); 
+    go(); 
+  });
   //Now -button sets current time & date of device  
   col.append("input").attr("type", "button").attr("value", "Now").attr("id", "now").on("click", now);
   //Horizon marker
@@ -2418,6 +2444,7 @@ function geo(cfg) {
 
   Celestial.date = function (dt) { 
     if (!dt) return date;  
+    if (dtpick.isVisible()) return;
     date.setTime(dt.valueOf());
     $("datetime").value = dateFormat(dt, zone); 
     Celestial.redraw();
@@ -3416,14 +3443,15 @@ var Moon = {
 
 };
 
-var datetimepicker = function(callback) {
+var datetimepicker = function(cfg, callback) {
   var date = new Date(), 
       tzFormat = d3.time.format("%Z"),
       tz = [{"−12:00":720}, {"−11:00":660}, {"−10:00":600}, {"−09:30":570}, {"−09:00":540}, {"−08:00":480}, {"−07:00":420}, {"−06:00":360}, {"−05:00":300}, {"−04:30":270}, {"−04:00":240}, {"−03:30":210}, {"−03:00":180}, {"−02:00":120}, {"−01:00":60}, {"±00:00":0}, {"+01:00":-60}, {"+02:00":-120}, {"+03:00":-180}, {"+03:30":-210}, {"+04:00":-240}, {"+04:30":-270}, {"+05:00":-300}, {"+05:30":-330}, {"+05:45":-345}, {"+06:00":-360}, {"+06:30":-390}, {"+07:00":-420}, {"+08:00":-480}, {"+08:30":-510}, {"+08:45":-525}, {"+09:00":-540}, {"+09:30":-570}, {"+10:00":-600}, {"+10:30":-630}, {"+11:00":-660}, {"+12:00":-720}, {"+12:45":-765}, {"+13:00":-780}, {"+14:00":-840}],
       months = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"],
       days = ["Su", "M", "Tu", "W", "Th", "F", "Sa"],
       years = getYears(date),
-      dateFormat = d3.time.format("%Y-%m-%d");
+      dateFormat = d3.time.format("%Y-%m-%d"),
+      dtrange = cfg.daterange || [];
     
   var picker = d3.select("#celestial-form").append("div").attr("id", "celestial-date");
   nav("left");
@@ -3449,10 +3477,10 @@ var datetimepicker = function(callback) {
     var nd = cal.node();
     while (nd.firstChild) nd.removeChild(nd.firstChild);
     
-    /*for (var i=0; i<7; i++) {
+    for (var i=0; i<7; i++) {
       cal.append("div").classed({"date": true, "weekday": true}).html(days[i]);
-    }*/
-    for (var i=0; i<42; i++) {
+    }
+    for (i=0; i<42; i++) {
       var curmon = curdt.getMonth(), curday = curdt.getDay(), curid = dateFormat(curdt);
       cal.append("div").classed({
         "date": true, 
@@ -3468,11 +3496,19 @@ var datetimepicker = function(callback) {
     }
   }
 
-  function yrSel() { 
-    var sel = picker.append("select").attr("title", "Year").attr("id", "yr").on("change", daySel),
+  function yrSel() {     
+    picker.append("select").attr("title", "Year").attr("id", "yr").on("change", daySel);   
+    
+    fillYrSel();
+  }
+
+  function fillYrSel() { 
+    var sel = d3.select("select#yr"),
+        year = date.getFullYear(),
         selected = 0,
-        year = date.getFullYear();
+        years = getYears(date);
         
+    sel.selectAll("*").remove();    
     sel.selectAll('option').data(years).enter().append('option')
        .text(function (d, i) { 
          if (d === year) selected = i; 
@@ -3537,11 +3573,25 @@ var datetimepicker = function(callback) {
   }
   
   function getYears(dt) {
-    var y0 = dt.getFullYear(), res = [];
-    for (var i=y0-10; i<=y0+10; i++) res.push(i);
+    var r = getDateRange(dt.getFullYear()), res = [];
+    for (var i = r[0]; i <= r[1]; i++) res.push(i);
     return res;
   }  
   
+  function getDateRange(yr) {
+    if (!dtrange || dtrange.length < 1) return [yr - 10, yr + 10];
+    
+    if (dtrange.length === 1 && isNumber(dtrange[0])) {
+      if (dtrange[0] >= 100) return [dtrange[0] - 10, dtrange[0] + 10];
+      else return [yr - dtrange[0], yr + dtrange[0]];
+    }
+    if (dtrange.length === 2 && isNumber(dtrange[0])&& isNumber(dtrange[1])) {
+      if (dtrange[1] >= 100) return [dtrange[0], dtrange[1]];
+      else return [dtrange[0] - dtrange[1], dtrange[0] + dtrange[1]];
+    }      
+    return [yr - 10, yr + 10];
+  }
+
   function select(id, val) {
     var sel = $(id);
     for (var i=0; i<sel.childNodes.length; i++) {
@@ -3601,11 +3651,7 @@ var datetimepicker = function(callback) {
     if (this.id && this.id.search(/^\d/) !== -1) {
       date = dateFormat.parse(this.id); 
     }
-    /*
-    var yr = date.getFullYear(), mo = date.getMonth();
-    select("yr", yr);
-    select("mon", mo);
-    daySel();*/
+    fillYrSel();
     
     date.setHours(h, m, s);
     set();
@@ -3678,12 +3724,14 @@ d3.geo.zoom = function() {
           dispatch = event.of(this, arguments),
           view1 = view,
           transition = d3.transition(g);
+     
       if (transition !== g) {
         transition
             .each("start.zoom", function() {
               if (this.__chart__) { // pre-transition state
                 view = this.__chart__;
-              }
+                if (!view.hasOwnProperty("r")) view.r = projection.rotate();
+              } 
               projection.rotate(view.r).scale(view.k);
               zoomstarted(dispatch);
             })
