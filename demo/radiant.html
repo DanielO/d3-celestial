@@ -31,17 +31,17 @@
     //horizon: {show: true},
   };
 
-  var nowdate = new Date(2018, 3, 1);
+  var nowdate = new Date(Date.parse("2018/04/01 00:00:00 UTC"));
   var sitename = 'mcmurdo';
 
   function newday(incr) {
+    nowdate = new Date(nowdate.getTime() + 86400000 * incr);
     var fname = sprintf("%s/%04d%02d%02d.%s.rad", config.datapath,
-			nowdate.getYear() + 1900, nowdate.getMonth() + 1, nowdate.getDate(),
+			nowdate.getUTCFullYear(), nowdate.getUTCMonth() + 1, nowdate.getUTCDate(),
 			sitename);
-    var dstr = sprintf("%04d/%02d/%02d", nowdate.getYear() + 1900, nowdate.getMonth() + 1, nowdate.getDate());
+    var dstr = sprintf("%04d/%02d/%02d", nowdate.getUTCFullYear(), nowdate.getUTCMonth() + 1, nowdate.getUTCDate());
     document.getElementById('date').innerHTML = dstr;
     document.getElementById('sitename').innerHTML = sitename;
-    nowdate = new Date(nowdate.getTime() + 86400000 * incr);
     d3.text(fname, raload);
   }
   newday(0);
@@ -167,7 +167,9 @@
       }
     }
 
+    // Delete old data
     Celestial.data = [];
+
     // Load feature into map
     Celestial.add({type:"line", callback: function(error, json) {
       // Load GeoJSON and convert coordinates
