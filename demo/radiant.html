@@ -14,34 +14,25 @@
     <div id="bincolours"></div>
 <div style="overflow:hidden;"><div id="celestial-map"></div></div>
 <div id="celestial-form" style="background-color:#ffffff"></div>
+  <script type="text/javascript" src="radiantconfig.js"></script>
 <script type="text/javascript">
-  var config = {
-    projection: "aitoff",
-    //geopos: [-77.849495, 166.728622], // McMurdo
-    //center: [-45, 0, 0],
-    //center: [25.468299143947664, -0, 0],
-    follow: "center",
-    location: true,
-    interactive: false,
-    form: true,
-    datapath: "../data/",
-    //stars: {proper: true},
-    stars: {show: false},
-    //planets: {show: true},
-    //horizon: {show: true},
-  };
-
-  var nowdate = new Date(Date.parse("2018/04/01 00:00:00 UTC"));
-  var sitename = 'mcmurdo';
+  if (config.nowdate === null) {
+    // No date? Start at yesterday
+    var nowdate = new Date(new Date() - 86400000);
+    nowdate.setUTCHours(0);
+    nowdate.setUTCMinutes(0);
+    nowdate.setUTCSeconds(0);
+    nowdate.setUTCMilliseconds(0);
+  }
 
   function newday(incr) {
     nowdate = new Date(nowdate.getTime() + 86400000 * incr);
-    var fname = sprintf("%s/%04d%02d%02d.%s.rad", config.datapath,
+    var fname = sprintf("%s/%04d%02d%02d.%s.rad", config.radiantpath,
 			nowdate.getUTCFullYear(), nowdate.getUTCMonth() + 1, nowdate.getUTCDate(),
-			sitename);
+			config.sitename);
     var dstr = sprintf("%04d/%02d/%02d", nowdate.getUTCFullYear(), nowdate.getUTCMonth() + 1, nowdate.getUTCDate());
     document.getElementById('date').innerHTML = dstr;
-    document.getElementById('sitename').innerHTML = sitename;
+    document.getElementById('sitename').innerHTML = config.sitename;
     d3.text(fname, raload);
   }
   newday(0);
@@ -173,7 +164,7 @@
     // Load feature into map
     Celestial.add({type:"line", callback: function(error, json) {
       // Load GeoJSON and convert coordinates
-      var asterism = Celestial.getData(radiantFeatures, config.transform);
+      var asterism = Celestial.getData(radiantFeatures, config.d3.transform);
 
       // Add to celestial objects container in d3
       Celestial.container.selectAll(".asterisms")
@@ -196,7 +187,7 @@
     }});
 
     // Draw map
-    Celestial.display(config);
+    Celestial.display(config.d3);
   }
 
 </script>
