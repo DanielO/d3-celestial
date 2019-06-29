@@ -108,7 +108,7 @@
       var b = colourvals[i][2];
       bctxt += sprintf('<td bgcolor="#%02x%02x%02x" style="color:#ffffff">%0.1f</td>', r, g, b, binsize * (i + 1));
       bins.push(binsize * (i + 1));
-      colours.push("rgba(" + r + ", " + g + ", " + b + ", 0.8)");
+      colours.push("rgba(" + r + ", " + g + ", " + b + ", 0.5)");
     }
     bctxt += '</tr></table>';
     document.getElementById('bincolours').innerHTML = bctxt;
