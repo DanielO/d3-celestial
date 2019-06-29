@@ -60,21 +60,21 @@
       console.log("Header incorrect");
       return;
     }
-    var line = lines.shift().trim().split(" ");
+    var line = lines.shift().trim().split(/\s+/);
     if (line[0] != "Rows") {
       console.log("Header (decl) incrrect");
       return;
     }
     var declstep = parseFloat(line[2]);
 
-    var line = lines.shift().trim().split(" ");
+    var line = lines.shift().trim().split(/\s+/);
     if (line[0] != "Right") {
       console.log("Header (ra) incorrect");
       return;
     }
     var rastep = parseFloat(line[4]);
 
-    var line = lines.shift().trim().split(" ");
+    var line = lines.shift().trim().split(/\s+/);
     if (line[0] != "First") {
       console.log("Header (first ra) incorrect");
       return;
